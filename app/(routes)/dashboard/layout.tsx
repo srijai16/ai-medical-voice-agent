@@ -1,0 +1,21 @@
+import { AppPageRouteModule } from "next/dist/server/route-modules/app-page/module.compiled";
+import React from "react";
+import AppHeader from "./_components/AppHeader";
+
+function Dashboard({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>){
+    return(
+
+        <div>
+          <AppHeader />
+          <div className="px-10 md:px-20 lg:px:40 py-10">
+            {children}
+          </div>
+          
+        </div>
+    )
+}
+export default Dashboard
