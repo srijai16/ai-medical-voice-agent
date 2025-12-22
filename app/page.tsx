@@ -109,7 +109,7 @@ const Navbar = () => {
         
         {/* Responsive Text */}
         <Link href="/dashboard">
-                <Image src={'/abc.svg'} alt='logo' width={250} height={70} />
+                <Image src={'/logo.svg'} alt='logo' width={250} height={70} />
         </Link>
       </div>
       
