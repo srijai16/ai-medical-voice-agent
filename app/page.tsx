@@ -1,8 +1,7 @@
 "use client";
 
-
+import Image from "next/image";
 import { motion } from "motion/react";
-import { FeatureBentoGrid } from "./_components/FeatureBentoGrid";
 import { UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -93,33 +92,9 @@ export default function HeroSectionOne() {
           )}
         </motion.div>
         
-        <motion.div
-          initial={{
-            opacity: 0,
-            y: 10,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.3,
-            delay: 1.2,
-          }}
-          className="relative z-10 mt-20 rounded-3xl border border-neutral-200 bg-neutral-100 p-4 shadow-md dark:border-neutral-800 dark:bg-neutral-900"
-        >
-          <div className="w-full overflow-hidden rounded-xl border border-gray-300 dark:border-gray-700">
-            <img
-              src="https://assets.aceternity.com/pro/aceternity-landing.webp"
-              alt="Landing page preview"
-              className="aspect-[16/9] h-auto w-full object-cover"
-              height={1000}
-              width={1000}
-            />
-          </div>
-        </motion.div>
+       
       </div>
-      <FeatureBentoGrid />
+      
     </div>
   );
 }
@@ -131,14 +106,11 @@ const Navbar = () => {
    return (
     <nav className="flex w-full items-center justify-between border-t border-b border-neutral-200 px-4 py-3 sm:py-4 dark:border-neutral-800">
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Enhanced Logo with MA */}
-        <div className="relative">
-          <div className="size-6 sm:size-7 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center">
-            <span className="text-white text-[10px] sm:text-xs font-bold">MA</span>
-          </div>
-        </div>
+        
         {/* Responsive Text */}
-        <h1 className="text-sm font-bold sm:text-base md:text-xl lg:text-2xl">MediAI Assistant</h1>
+        <Link href="/dashboard">
+                <Image src={'/abc.svg'} alt='logo' width={250} height={70} />
+        </Link>
       </div>
       
       {!user ? (
