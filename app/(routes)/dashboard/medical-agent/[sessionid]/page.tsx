@@ -1,6 +1,7 @@
 "use client"
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect,useState } from "react";
+import { useEffect, useState, useRef } from "react";
+//import React, { useEffect,useState } from "react";
 import axios from "axios";
 import { doctorAgent } from "../../_components/DoctorAgentCard";
 import { Circle, Loader, PhoneCall, PhoneOff } from "lucide-react";
@@ -34,16 +35,54 @@ function MedicalVoiceAgent(){
     const[vapiInstance,setVapiInstance]=useState<any>();
     const[currentRoll,setCurrentRole]=useState<string|null>();
     const[liveTranscript,setLiveTranscript]=useState<string>();
-    const[messages,setMessages]=useState<messages[]>([])
+    const[messages,setMessages]=useState<messages[]>([]);
+    const [seconds, setSeconds] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
     const router=useRouter();
+    
+    // Timer function
+    useEffect(() => {
+        if (callStarted) {
+            timerRef.current = setInterval(() => {
+                setSeconds(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+            setSeconds(0); // Reset timer when call ends
+        }
+        
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, [callStarted]);
+    
+    // Format time to MM:SS
+    const formatTime = (totalSeconds: number) => {
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+    
     useEffect(()=>{
         sessionId&&GetSessionDetails();
     },[sessionId])
+    
     const GetSessionDetails=async()=>{
         const result=await axios.get('/api/session-chat?sessionId='+sessionId.sessionid);
         console.log(result.data);
         setSessionDetail(result.data);
     };
+
+
+    
+    
+
+
 
     const StartCall=()=>{
         setConnecting(true);
@@ -151,7 +190,9 @@ function MedicalVoiceAgent(){
         <div className="p-5 border rounded-3xl bg-secondary">
             <div className="flex justify-between items-center">
                 <h2 className="p-1 px-2 border rounded-md flex gap-2 items-center"><Circle className={`h-4 w-4 rounded-full ${callStarted?'bg-green-500':'bg-red-500'}`}/>{callStarted?'Connected...':'Not Connected'}</h2>
-                <h2 className="font-bold text-xl text-gray-400">00:00</h2>
+               <h2 className="font-bold text-xl text-gray-400">
+                    {formatTime(seconds)}
+                </h2>
             </div>  
             {SessionDetail&& <div className="flex items-center flex-col mt-10">
                 <Image src={SessionDetail?.selectedDoctor?.image} alt={SessionDetail?.selectedDoctor?.specialist??''}
@@ -180,4 +221,19 @@ function MedicalVoiceAgent(){
 export default MedicalVoiceAgent
 
 
-// {loading ? <Loader className="animate-spin"/>:}
+//{loading ? <Loader className="animate-spin"/>:}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
