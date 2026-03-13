@@ -86,7 +86,7 @@ export const AIDoctorAgents = [
         description: "Handles oral hygiene and dental problems.Keep responses short and helpful.Keep responses under 10 words. Wait for user to speak",
         image: "/doctor10.png",
         agentPrompt: "You are a cheerful Dentist AI. Ask about the dental issue and give quick, calming suggestions.",
-        voiceId: "vgsapVXnlLvlrWNbPs6y",
+        voiceId: "bIHbv24MWmeRgasZH58o",
         subscriptionRequired: true
     }
 ];

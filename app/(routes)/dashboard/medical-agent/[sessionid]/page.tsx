@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import Vapi from '@vapi-ai/web';
 import Provider from "@/app/provider";
 import { toast } from "sonner";
+import FeedbackModal from "../../_components/FeedbackModal";
+import { useUser } from "@clerk/nextjs";
+
+
 
 export type SessionDetail={
     id:number,
@@ -37,8 +41,11 @@ function MedicalVoiceAgent(){
     const[liveTranscript,setLiveTranscript]=useState<string>();
     const[messages,setMessages]=useState<messages[]>([]);
     const [seconds, setSeconds] = useState(0);
+    const [callDuration, setCallDuration] = useState(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const router=useRouter();
+    const [showFeedback, setShowFeedback] = useState(false);
+    const { user } = useUser();
     
     // Timer function
     useEffect(() => {
@@ -72,6 +79,15 @@ function MedicalVoiceAgent(){
         sessionId&&GetSessionDetails();
     },[sessionId])
     
+
+    useEffect(() => {
+        return () => {
+            if (vapiInstance) {
+            vapiInstance.stop();
+            }
+        };
+        }, []);
+
     const GetSessionDetails=async()=>{
         const result=await axios.get('/api/session-chat?sessionId='+sessionId.sessionid);
         console.log(result.data);
@@ -126,6 +142,10 @@ function MedicalVoiceAgent(){
     };
         //@ts-ignore
         vapi.start(VapiAgentConfig);
+        vapi.on("error", (e:any) => {
+            console.log("Vapi error:", e);
+        });
+
         vapi.on('call-start', () => {console.log('Call started')
             setCallStarted(true);
         });
@@ -157,20 +177,24 @@ function MedicalVoiceAgent(){
         });
 
     };
-    const endCall = async() => {
-      setLoading(true);
-      if(!vapiInstance) return;
-      vapiInstance.stop();
-      const result=await GenerateReport();
-    //   vapiInstance.off('call-start');
-    //   vapiInstance.off('call-end');
-    //   vapiInstance.off('message');
-      setCallStarted(false);
-      setVapiInstance(null);
-      setLoading(false);
-      toast.success('Your report is generated!')
-      router.replace('/dashboard');
-  };
+    const endCall = async () => {
+        setLoading(true);
+
+        if (!vapiInstance) return;
+        setCallDuration(seconds);
+        vapiInstance.stop();
+
+        await GenerateReport();
+
+        setCallStarted(false);
+        setVapiInstance(null);
+        setLoading(false);
+
+        toast.success("Your report is generated!");
+
+        // open feedback modal
+        setShowFeedback(true);
+        };
      
 
     
@@ -186,37 +210,102 @@ function MedicalVoiceAgent(){
     }
 
     
-    return(
-        <div className="p-5 border rounded-3xl bg-secondary">
-            <div className="flex justify-between items-center">
-                <h2 className="p-1 px-2 border rounded-md flex gap-2 items-center"><Circle className={`h-4 w-4 rounded-full ${callStarted?'bg-green-500':'bg-red-500'}`}/>{callStarted?'Connected...':'Not Connected'}</h2>
-               <h2 className="font-bold text-xl text-gray-400">
-                    {formatTime(seconds)}
-                </h2>
-            </div>  
-            {SessionDetail&& <div className="flex items-center flex-col mt-10">
-                <Image src={SessionDetail?.selectedDoctor?.image} alt={SessionDetail?.selectedDoctor?.specialist??''}
-                width={120} height={120}
-                className="h-[100px] w-[100px] object-cover rounded-full"/>
-            
-            <h2 className="mt-1 text-lg">{SessionDetail?.selectedDoctor?.specialist}</h2>
-            <p className="text-sm text-gray-400">AI Medical Voice Agent</p>
-            <div className="mt-12 overflow-y-auto flex flex-col px-10 md:px-28 lg:px-52 xl:px-72">
-                {messages?.slice(-4).map((msg:messages,index)=>(
-                    <h2 className="text-gray-400 p-2" key={index}>{msg.role}:{msg.text}</h2>
-                    
-                ))}
-                
-                {liveTranscript && liveTranscript?.length>0 &&<h2 className="text-lg">{currentRoll} : {liveTranscript}</h2>}
-            </div>
-            {!callStarted? <Button className="mt-20" onClick={StartCall} disabled={connecting}>
-                {connecting ? <Loader className="animate-spin"/>:<PhoneCall/>}Start call</Button>
-            :<Button variant={'destructive'} onClick={endCall} disabled={loading}> 
-            {loading ? <Loader className="animate-spin"/>:<PhoneOff/>}Disconnect</Button>
-            }
-            </div>}
+   return (
+<>
+    <div className="p-5 border rounded-3xl bg-secondary">
+        <div className="flex justify-between items-center">
+            <h2 className="p-1 px-2 border rounded-md flex gap-2 items-center">
+                <Circle className={`h-4 w-4 rounded-full ${callStarted ? 'bg-green-500' : 'bg-red-500'}`} />
+                {callStarted ? 'Connected...' : 'Not Connected'}
+            </h2>
+
+            <h2 className="font-bold text-xl text-gray-400">
+                {formatTime(seconds)}
+            </h2>
         </div>
-    )
+
+        {SessionDetail && (
+            <div className="flex items-center flex-col mt-10">
+
+                <Image
+                    src={SessionDetail?.selectedDoctor?.image}
+                    alt={SessionDetail?.selectedDoctor?.specialist ?? ''}
+                    width={120}
+                    height={120}
+                    className="h-[100px] w-[100px] object-cover rounded-full"
+                />
+
+                <h2 className="mt-1 text-lg">
+                    {SessionDetail?.selectedDoctor?.specialist}
+                </h2>
+
+                <p className="text-sm text-gray-400">
+                    AI Medical Voice Agent
+                </p>
+
+                <div className="mt-12 overflow-y-auto flex flex-col px-10 md:px-28 lg:px-52 xl:px-72">
+
+                    {messages?.slice(-4).map((msg: messages, index) => (
+                        <h2 className="text-gray-400 p-2" key={index}>
+                            {msg.role}:{msg.text}
+                        </h2>
+                    ))}
+
+                    {liveTranscript && liveTranscript?.length > 0 && (
+                        <h2 className="text-lg">
+                            {currentRoll} : {liveTranscript}
+                        </h2>
+                    )}
+                </div>
+
+                {!callStarted ? (
+                    <Button className="mt-20" onClick={StartCall} disabled={connecting}>
+                        {connecting ? <Loader className="animate-spin" /> : <PhoneCall />}
+                        Start call
+                    </Button>
+                ) : (
+                    <Button variant={'destructive'} onClick={endCall} disabled={loading}>
+                        {loading ? <Loader className="animate-spin" /> : <PhoneOff />}
+                        Disconnect
+                    </Button>
+                )}
+            </div>
+        )}
+    </div>
+
+    {/* Feedback Modal */}
+    {showFeedback && (
+            <FeedbackModal
+                sessionData={{
+                    doctorName: SessionDetail?.selectedDoctor?.specialist,
+                    callDuration: formatTime(callDuration),
+                    sessionId: SessionDetail?.sessionId
+                }}
+                onSubmit={async (rating, comment) => {
+
+                    await fetch("/api/feedback", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            rating,
+                            comment,
+                            sessionId: SessionDetail?.sessionId,
+                            doctorName: SessionDetail?.selectedDoctor?.specialist,
+                            userEmail: user?.primaryEmailAddress?.emailAddress
+                        })
+                    });
+
+                    toast.success("Thanks for your feedback!");
+                    router.replace("/dashboard");
+                }}
+                onClose={() => setShowFeedback(false)}
+                onSkip={() => router.replace("/dashboard")}
+            />
+        )}
+</>
+)
 }
 export default MedicalVoiceAgent
 

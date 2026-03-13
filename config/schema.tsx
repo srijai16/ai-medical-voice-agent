@@ -17,3 +17,20 @@ export const SessionChatTable=pgTable('sessionChatTable',{
   createdBy:varchar().references(()=>usersTable.email),
   createdOn:varchar()
 });
+
+
+export const feedbackTable = pgTable("feedback", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+
+  sessionId: varchar().notNull(),
+
+  doctorName: varchar({ length: 255 }),
+
+  rating: integer().notNull(),
+
+  comment: text(),
+
+  createdBy: varchar().references(() => usersTable.email),
+
+  createdOn: varchar()
+});
