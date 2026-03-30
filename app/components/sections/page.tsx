@@ -63,7 +63,11 @@ function markAndGo(router: ReturnType<typeof useRouter>, path: string) {
   router.push(path);
 }
 
-export default function HeroSection({ onLoad }: { onLoad?: () => void }) {
+interface HeroSectionProps {
+  onLoad?: () => void;
+}
+
+export default function HeroSection({ onLoad }: HeroSectionProps) {
   const { user, isLoaded, isSignedIn } = useUser();
   const router = useRouter();
   useEffect(() => {
