@@ -71,9 +71,9 @@ export default function HeroSection({ onLoad }: HeroSectionProps) {
   const { user, isLoaded, isSignedIn } = useUser();
   const router = useRouter();
   useEffect(() => {
-    // Notify parent that hero is ready
     onLoad?.();
-  }, []);
+  }, [onLoad]);
+
   
   if (isLoaded && user && sessionStorage.getItem(FLAG_KEY) === "true") {
     router.replace("/dashboard");
