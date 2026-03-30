@@ -35,9 +35,7 @@ function AddNewSessionDialog(){
       //@ts-ignore
       const paidUser=has && has({plan:'pro' })
 
-       useEffect(()=>{
-              GetHistoryList();
-          },[])
+
       
           const GetHistoryList=async()=>{
               const result=await axios.get('/api/session-chat?sessionId=all')

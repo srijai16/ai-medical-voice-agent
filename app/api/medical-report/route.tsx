@@ -3,6 +3,8 @@ import { SessionChatTable } from "@/config/schema";
 import { NextRequest, NextResponse } from "next/server";
 import {db} from "@/config/db";
 import { eq } from "drizzle-orm";
+import redis from "@/lib/redis";
+import { currentUser } from "@clerk/nextjs/server";
 
 const REPORT_GEN_PROMPT=`You are an Al Medical Voice Agent that just finished a voice conversation with a user. Based on doctor AI agent info and Conversation between AI medical agent and user, generate a structured report with the following fields:
 1. sessionid: a unique session identifier
@@ -32,6 +34,9 @@ Only include valid fields. Respond with nothing else.`
 
 export async function POST(req:NextRequest) {
     const {sessionId,SessionDetail,messages}=await req.json();
+    const user = await currentUser();
+    const userEmail = user?.primaryEmailAddress?.emailAddress;
+
     try{
       const simplifiedMessages = messages.map((msg: any) => ({
       role: msg.role,
@@ -54,19 +59,14 @@ export async function POST(req:NextRequest) {
         //@ts-ignore
         const Resp=rawResp.content.trim().replace('```json','').replace('```','');
         const JSONResp=JSON.parse(Resp);
-        // First check if the record exists
-// const existingRecord = await db.select()
-//   .from(SessionChatTable)
-//   .where(eq(SessionChatTable.sessionId, "session_12345"))
-//   .limit(1);
-
-// console.log('Existing record:', existingRecord);
-       // console.log('Update result:', result);
        const result = await db.update(SessionChatTable).set({
-  report: JSONResp,
-  conversation: messages
-}).where(eq(SessionChatTable.sessionId, sessionId.value || sessionId.id || sessionId.sessionid));
-
+          report: JSONResp,
+          conversation: messages
+        }).where(eq(SessionChatTable.sessionId, sessionId.value || sessionId.id || sessionId.sessionid));
+        if (userEmail) {
+            await redis.del(`history:${userEmail}:${sessionId.sessionid || sessionId}`);
+            await redis.del(`history:${userEmail}:all`);
+        }
         return NextResponse.json(JSONResp);
         }catch(e){
             return NextResponse.json(e)

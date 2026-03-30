@@ -1,24 +1,38 @@
 "use client"
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import AddNewSessionDialog from "./AddNewSessionDialog";
 import axios from "axios";
-//import HistoryTable from "./HistoryTable";
+import Image from "next/image";
+import AddNewSessionDialog from "./AddNewSessionDialog";
 import HistoryTable from "./HistoryTable";
 function HistoryList(){
     const [historyList,setHistoryList]=useState([]);
-    useEffect(()=>{
-        GetHistoryList();
-    },[])
+    const [loading,setLoading]=useState(true);
 
+   useEffect(() => {
+        const cached = sessionStorage.getItem("history");
+
+        if (cached) {
+            setHistoryList(JSON.parse(cached)); 
+        }
+
+        GetHistoryList();
+    }, []);
     const GetHistoryList=async()=>{
-        const result=await axios.get('/api/session-chat?sessionId=all')
-        console.log(result.data);
+        setLoading(true);
+
+        const result=await axios.get('/api/session-chat?sessionId=all');
+
         setHistoryList(result.data);
-        //setHistoryListRecord(result.data)
+
+        //  cache
+        sessionStorage.setItem("history", JSON.stringify(result.data));
+
+        setLoading(false);
     }
-    return(
+
+    
+
+    return (
         <div className='mt-10'>
             {historyList.length==0 ?
                <div className='flex items-center flex-col justify-center p-7 border border-dashed rounded-2xl border-2'>
@@ -35,3 +49,10 @@ function HistoryList(){
     )
 }
 export default HistoryList
+
+// const GetHistoryList=async()=>{
+//         const result=await axios.get('/api/session-chat?sessionId=all')
+//         console.log(result.data);
+//         setHistoryList(result.data);
+//         //setHistoryListRecord(result.data)
+//     }

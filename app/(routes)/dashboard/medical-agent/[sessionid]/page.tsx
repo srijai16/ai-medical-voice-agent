@@ -58,7 +58,7 @@ function MedicalVoiceAgent(){
                 clearInterval(timerRef.current);
                 timerRef.current = null;
             }
-            setSeconds(0); // Reset timer when call ends
+            setSeconds(0); 
         }
         
         return () => {
@@ -80,11 +80,53 @@ function MedicalVoiceAgent(){
     },[sessionId])
     
 
-    useEffect(() => {
-        return () => {
-            if (vapiInstance) {
-            vapiInstance.stop();
+   useEffect(() => {
+        const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
+
+        vapi.on("error", (e: any) => {
+            console.log("Vapi error:", e);
+            setConnecting(false);
+        });
+
+        vapi.on('call-start', () => {
+            setCallStarted(true);
+        });
+
+        vapi.on('call-end', () => {
+            setCallStarted(false);
+            setConnecting(false);
+        });
+
+        vapi.on('message', (message: any) => {
+            if (message.type === 'transcript') {
+            const { role, transcriptType, transcript } = message;
+
+            if (transcriptType === 'partial') {
+                setLiveTranscript(transcript);
+                setCurrentRole(role);
+            } else if (transcriptType === 'final') {
+                setMessages((prev: any) => [
+                ...prev,
+                { role, text: transcript }
+                ]);
+                setLiveTranscript("");
+                setCurrentRole(null);
             }
+            }
+        });
+
+        vapi.on('speech-start', () => {
+            setCurrentRole('assistant');
+        });
+
+        vapi.on('speech-end', () => {
+            setCurrentRole('user');
+        });
+
+        setVapiInstance(vapi);
+
+        return () => {
+            vapi.stop();
         };
         }, []);
 
@@ -94,105 +136,49 @@ function MedicalVoiceAgent(){
         setSessionDetail(result.data);
     };
 
+    const StartCall = () => {
+    if (!vapiInstance) return;
 
-    
-    
+    setConnecting(true);
 
-
-
-    const StartCall=()=>{
-        setConnecting(true);
-        //console.log(sessionId.value || sessionId.id || sessionId.sessionid);
-        const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
-        setVapiInstance(vapi);
-
-    //     const VapiAgentConfig={
-    //         name:'AI Medical Doctor Voice Agent',
-    //         firstMessage:"Hi there! I'am your AI Medical Assistant. I'm here to help you with any health questions or concerns you might have today. How are you feeling?",
-    //         transcriber:{
-    //             provider: 'deepgram', // Keep this as 'deepgram'
-    //             model: 'nova-2',
-    //             language: 'en'
-    //         },
-    //         voice:{
-    //             provider:'11labs',
-    //             voiceId:SessionDetail?.selectedDoctor?.voiceId 
-    //         },
-    //         model:{
-    //             provider: 'openai',
-    // model: 'gpt-5',
-    //             messages:[
-    //                 {
-    //                     role:'system',
-    //                     content:SessionDetail?.selectedDoctor?.agentPrompt
-    //                 }
-    //             ]
-    //         }
-    //     }
     const VapiAgentConfig = {
-        name:'AI Medical Doctor Voice Agent',
-        firstMessage:"Hi there! I'am your AI Medical Assistant. I'm here to help you with any health questions or concerns you might have today. How are you feeling?",
-        transcriber: { provider: 'deepgram',language: 'en' },
-        voice: { provider: '11labs', voiceId: SessionDetail?.selectedDoctor?.voiceId},
-        model: { provider: 'openai', model: 'gpt-5',messages:[
-                  {
-                     role:'system',
-                      content:SessionDetail?.selectedDoctor?.agentPrompt
-                   } ]}
-    };
-        //@ts-ignore
-        vapi.start(VapiAgentConfig);
-        vapi.on("error", (e:any) => {
-            console.log("Vapi error:", e);
-        });
-
-        vapi.on('call-start', () => {console.log('Call started')
-            setCallStarted(true);
-        });
-        vapi.on('call-end', () => {console.log('Call ended')
-            setCallStarted(false);
-            setConnecting(false);
-        });
-        vapi.on('message', (message) => {
-        if (message.type === 'transcript') {
-            const{role,transcriptType,transcript}=message;
-            console.log(`${message.role}: ${message.transcript}`);
-            if(transcriptType=='partial'){
-            setLiveTranscript(transcript);
-            setCurrentRole(role);
-            }else if(transcriptType=='final'){
-                setMessages((prev:any)=>[...prev,{role:role,text:transcript}])
-                setLiveTranscript("");
-                setCurrentRole(null);
+        name: 'AI Medical Doctor Voice Agent',
+        firstMessage: "Hi, how can I help you?",
+        transcriber: { provider: 'deepgram' },
+        voice: {
+        provider: '11labs',
+        voiceId: SessionDetail?.selectedDoctor?.voiceId
+        },
+        model: {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        messages: [
+            {
+            role: 'system',
+            content: SessionDetail?.selectedDoctor?.agentPrompt
             }
+        ]
         }
-        });
-        vapi.on('speech-start', () => {
-      console.log('Assistant started speaking');
-      setCurrentRole('assistant');
-        });
-    vapi.on('speech-end', () => {
-      console.log('Assistant stopped speaking');
-      setCurrentRole('user');
-        });
+    };
 
+    //@ts-ignore
+    vapiInstance.start(VapiAgentConfig);
     };
     const endCall = async () => {
+        if (!vapiInstance) return;
+
         setLoading(true);
 
-        if (!vapiInstance) return;
         setCallDuration(seconds);
-        vapiInstance.stop();
+
+        vapiInstance.stop(); 
 
         await GenerateReport();
 
         setCallStarted(false);
-        setVapiInstance(null);
         setLoading(false);
 
         toast.success("Your report is generated!");
-
-        // open feedback modal
         setShowFeedback(true);
         };
      
