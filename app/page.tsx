@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import Footer from "@/components/ui/footer";
 
-const HeroSection = dynamic(() => import("./components/sections/page"), {
+const HeroSection = dynamic(() => import("./components/sections/HeroSection"), {
   loading: () => (
     <div className="h-[500px] flex items-center justify-center">
       <div className="h-[400px] w-[90%] animate-pulse rounded-xl bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100" />
